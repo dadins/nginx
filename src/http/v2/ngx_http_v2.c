@@ -2310,6 +2310,19 @@ ngx_http_v2_state_goaway(ngx_http_v2_connection_t *h2c, u_char *pos,
         return ngx_http_v2_state_save(h2c, pos, end, ngx_http_v2_state_goaway);
     }
 
+    /* RFC7540  Section 6.8 
+       The GOAWAY frame applies to the connection, not a specific stream. 
+       An endpoint MUST treat a GOAWAY frame with a stream identifier other 
+       than 0x0 as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
+     */
+    if (h2c->state.sid != 0) {
+        ngx_log_error(NGX_LOG_INFO, h2c->connection->log, 0,
+                "client sent GOAWAY frame"
+                "with stream identifier 0");
+        return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_PROTOCOL_ERROR);
+    }
+
+
 #if (NGX_DEBUG)
     h2c->state.length -= NGX_HTTP_V2_GOAWAY_SIZE;
 
